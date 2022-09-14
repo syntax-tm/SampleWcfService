@@ -81,6 +81,7 @@
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="LICENSE.txt" />
     <Content Include="TestService.svc" />
     <Content Include="Web.config" />
   </ItemGroup>
@@ -100,6 +101,7 @@
       <DependentUpon>Dockerfile</DependentUpon>
     </None>
     <None Include="packages.config" />
+    <Content Include="README.md" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
