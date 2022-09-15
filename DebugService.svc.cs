@@ -29,8 +29,7 @@ namespace WcfDebug
                 return assemblyLocation;
             }
         }
-
-        [WebInvoke(Method = "GET", UriTemplate = "/ping")]
+        
         public string Ping()
         {
             log.Info($"{nameof(Ping)}");
