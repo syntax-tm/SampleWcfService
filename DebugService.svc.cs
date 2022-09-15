@@ -1,71 +1,148 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.ServiceModel.Web;
+using log4net;
 using Newtonsoft.Json;
 
-namespace SampleWcfService
+namespace WcfDebug
 {
-    public class TestService : ITestService
+    public class DebugService : IDebugService
     {
+        private const string PONG = @"Pong";
+        private const string ECHO_RESPONSE_FORMAT = @"You entered: {0}";
+
+        private static readonly ILog log = LogManager.GetLogger(typeof(DebugService));
+
+        private static string DefaultDirectory { get; } = Environment.CurrentDirectory;
+        private static string DefaultFile
+        {
+            get
+            {
+                var assembly = Assembly.GetExecutingAssembly();
+                var assemblyLocation = assembly.Location;
+
+                return assemblyLocation;
+            }
+        }
+
+        [WebInvoke(Method = "GET", UriTemplate = "/ping")]
         public string Ping()
         {
-            return @"Pong";
+            log.Info($"{nameof(Ping)}");
+
+            return PONG;
         }
         
-        public string DisplayIntValue(int value)
+        public string EchoIntValue(int value)
         {
-            return $"You entered: {value}";
+            log.Info($"{nameof(EchoIntValue)}({value})");
+
+            return string.Format(ECHO_RESPONSE_FORMAT, value);
         }
         
-        public string DisplayStringValue(string value)
+        public string EchoStringValue(string value)
         {
-            return $"You entered: {value}";
+            log.Info($"{nameof(EchoStringValue)}({value})");
+
+            return string.Format(ECHO_RESPONSE_FORMAT, value);
         }
 
-        public string GetDirectoryContents(string path, string searchPattern = "*", bool recursive = false)
+        public string GetDirectoryContents(FileSystemSearchOptions searchOptions)
         {
-            var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            var contents = Directory.GetFileSystemEntries(path, searchPattern, searchOption);
-            return JsonConvert.SerializeObject(contents, Formatting.Indented);
+            if (searchOptions is null) throw new ArgumentNullException(nameof(searchOptions));
+            
+            log.Info($"{nameof(GetDirectoryContents)}");
+            log.Info(JsonConvert.SerializeObject(searchOptions, Formatting.None));
+
+            var path = string.IsNullOrEmpty(searchOptions.Path)
+                ? DefaultDirectory
+                : searchOptions.Path;
+
+            var results = new List<string>();
+
+            if (searchOptions.SearchType.HasFlag(SearchType.Directories))
+            {
+                var directories = Directory.GetDirectories(path, searchOptions.SearchPattern, searchOptions.SearchOption);
+                results.AddRange(directories);
+            }
+
+            if (searchOptions.SearchType.HasFlag(SearchType.Files))
+            {
+                var files = Directory.GetFiles(path, searchOptions.SearchPattern, searchOptions.SearchOption);
+                results.AddRange(files);
+            }
+
+            return JsonConvert.SerializeObject(results, Formatting.Indented);
         }
 
-        public string GetDirectoryFiles(string path, string searchPattern = "*", bool recursive = false)
+        public string GetDirectoryFiles(FileSystemSearchOptions searchOptions)
         {
-            var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            var contents = Directory.GetFiles(path, searchPattern, searchOption);
+            if (searchOptions is null) throw new ArgumentNullException(nameof(searchOptions));
+
+            var path = string.IsNullOrEmpty(searchOptions.Path)
+                ? DefaultDirectory
+                : searchOptions.Path;
+            
+            var contents = Directory.GetFiles(path, searchOptions.SearchPattern, searchOptions.SearchOption);
             return JsonConvert.SerializeObject(contents, Formatting.Indented);
         }
         
-        public string GetDirectorySubDirectories(string path, string searchPattern = "*", bool recursive = false)
+        public string GetDirectorySubDirectories(FileSystemSearchOptions searchOptions)
         {
-            var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            var contents = Directory.GetDirectories(path, searchPattern, searchOption);
+            if (searchOptions is null) throw new ArgumentNullException(nameof(searchOptions));
+
+            var path = string.IsNullOrEmpty(searchOptions.Path)
+                ? DefaultDirectory
+                : searchOptions.Path;
+            
+            var contents = Directory.GetDirectories(path, searchOptions.SearchPattern, searchOptions.SearchOption);
             return JsonConvert.SerializeObject(contents, Formatting.Indented);
         }
 
         public bool GetDirectoryExists(string path)
         {
+            if (string.IsNullOrEmpty(path))
+            {
+                path = DefaultDirectory;
+            }
+
             return Directory.Exists(path);
         }
         
         public string GetDirectoryInfo(string path)
         {
+            if (string.IsNullOrEmpty(path))
+            {
+                path = DefaultDirectory;
+            }
+
             var di = new DirectoryInfo(path);
             return JsonConvert.SerializeObject(di, Formatting.Indented);
         }
 
         public bool GetFileExists(string path)
         {
-            return File.Exists(path);
+            if (!string.IsNullOrEmpty(path)) return File.Exists(path);
+            
+            return File.Exists(DefaultFile);
         }
         
         public string GetFileInfo(string path)
         {
-            var fi = new FileInfo(path);
-            return JsonConvert.SerializeObject(fi, Formatting.Indented);
+            if (!string.IsNullOrEmpty(path))
+            {
+                var fullPath = Path.GetFullPath(path);
+                var fi = new FileInfo(fullPath);
+                return JsonConvert.SerializeObject(fi, Formatting.Indented);
+            }
+            
+            var assemblyFi = new FileInfo(DefaultFile);
+            return JsonConvert.SerializeObject(assemblyFi, Formatting.Indented);
         }
 
         public string GetDNSHostName()
@@ -88,8 +165,7 @@ namespace SampleWcfService
 
             return JsonConvert.SerializeObject(ip, Formatting.Indented);
         }
-
-
+        
         public string GetEnvironmentVariable(string name)
         {
             return Environment.GetEnvironmentVariable(name);
@@ -213,7 +289,7 @@ namespace SampleWcfService
             var request = context.IncomingRequest;
             var template = request.UriTemplateMatch;
             
-            return template.RequestUri;
+            return template?.RequestUri;
         }
         
         public Uri GetRequestBaseUri()
@@ -222,7 +298,7 @@ namespace SampleWcfService
             var request = context.IncomingRequest;
             var template = request.UriTemplateMatch;
             
-            return template.BaseUri;
+            return template?.BaseUri;
         }
         
         public string GetRequestQueryParameters()
@@ -230,16 +306,18 @@ namespace SampleWcfService
             var context = WebOperationContext.Current ?? throw new ArgumentNullException(nameof(WebOperationContext));
             var request = context.IncomingRequest;
             var template = request.UriTemplateMatch;
+            var queryParams = template.QueryParameters;
 
-            return JsonConvert.SerializeObject(template.QueryParameters, Formatting.Indented);
+            return JsonConvert.SerializeObject(queryParams, Formatting.Indented);
         }
 
         public string GetRequestHeaders()
         {
             var context = WebOperationContext.Current ?? throw new ArgumentNullException(nameof(WebOperationContext));
             var request = context.IncomingRequest;
+            var headers = request.Headers;
 
-            return JsonConvert.SerializeObject(request.Headers, Formatting.Indented);
+            return JsonConvert.SerializeObject(headers, Formatting.Indented);
         }
 
         public string GetRequestUriTemplateMatch()
@@ -250,6 +328,5 @@ namespace SampleWcfService
 
             return JsonConvert.SerializeObject(template, Formatting.Indented);
         }
-
     }
 }

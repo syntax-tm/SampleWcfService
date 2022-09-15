@@ -1,15 +1,14 @@
 ﻿using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("SampleWcfService")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("WCF Container Debug Service")]
+[assembly: AssemblyDescription("WCF service to help with troubleshooting issues in deployed Docker containers")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("SampleWcfService")]
+[assembly: AssemblyCompany("https://github.com/syntax-tm")]
+[assembly: AssemblyProduct("WcfDebug")]
 [assembly: AssemblyCopyright("Copyright ©  2022")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -34,3 +33,6 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
+
+// Configure log4net using the config file
+[assembly: log4net.Config.XmlConfigurator(ConfigFile = @"log4net.config", Watch = true)]
