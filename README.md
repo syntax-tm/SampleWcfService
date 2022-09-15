@@ -1,4 +1,4 @@
-# SampleWcfService
+# WcfDebug
 
 ## Summary
 
