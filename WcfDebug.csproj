@@ -97,6 +97,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="docs\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Dockerfile" />
