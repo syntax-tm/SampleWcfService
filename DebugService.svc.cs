@@ -6,7 +6,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.ServiceModel.Web;
-using log4net;
 using Newtonsoft.Json;
 
 namespace WcfDebug
@@ -15,9 +14,7 @@ namespace WcfDebug
     {
         private const string PONG = @"Pong";
         private const string ECHO_RESPONSE_FORMAT = @"You entered: {0}";
-
-        private static readonly ILog log = LogManager.GetLogger(typeof(DebugService));
-
+        
         private static string DefaultDirectory { get; } = Environment.CurrentDirectory;
         private static string DefaultFile
         {
@@ -32,22 +29,16 @@ namespace WcfDebug
         
         public string Ping()
         {
-            log.Info($"{nameof(Ping)}");
-
             return PONG;
         }
         
         public string EchoIntValue(int value)
         {
-            log.Info($"{nameof(EchoIntValue)}({value})");
-
             return string.Format(ECHO_RESPONSE_FORMAT, value);
         }
         
         public string EchoStringValue(string value)
         {
-            log.Info($"{nameof(EchoStringValue)}({value})");
-
             return string.Format(ECHO_RESPONSE_FORMAT, value);
         }
 
@@ -55,9 +46,6 @@ namespace WcfDebug
         {
             if (searchOptions is null) throw new ArgumentNullException(nameof(searchOptions));
             
-            log.Info($"{nameof(GetDirectoryContents)}");
-            log.Info(JsonConvert.SerializeObject(searchOptions, Formatting.None));
-
             var path = string.IsNullOrEmpty(searchOptions.Path)
                 ? DefaultDirectory
                 : searchOptions.Path;
